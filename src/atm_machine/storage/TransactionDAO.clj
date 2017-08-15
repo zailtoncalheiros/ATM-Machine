@@ -9,14 +9,19 @@
 
     (perform-operation! [storage value description]))
 
+(def transaction-desc {:table-name "public.transaction"
+                    :id "id"
+                    :account "account"
+                    :balance "balance"
+                    :value "value"
+                    :description "description"
+                    :transaction-time "transaction-time"})
+
 (defn create-transaction-table! [spec]
-  (db/execute! spec [ "CREATE TABLE IF NOT EXISTS public.transaction
-                            (
-                              id BIGSERIAL PRIMARY KEY,
-                              account bigint NOT NULL REFERENCES public.person,
-                              balance bigint NOT NULL,
-                              value bigint NOT NULL,
-                              description text,
-                              transaction_time TIMESTAMP NOT NULL
-                            )
-                            " ]))
+  (db/execute! spec [(str "CREATE TABLE IF NOT EXISTS " (:table-name transaction-desc) "( "
+                              (:id transaction-desc) " BIGSERIAL PRIMARY KEY, "
+                              (:account transaction-desc) " BIGINT NOT NULL REFERENCES " (:table-name persondao.person-desc) ", "
+                              (:balance transaction-desc) " BIGINT NOT NULL, "
+                              (:value transaction-desc) " BIGINT NOT NULL, "
+                              (:description transaction-desc) " TEXT NOT NULL ",
+                              (:transaction-time transaction-desc) " TIMESTAMP NOT NULL)")]))

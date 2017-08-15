@@ -4,9 +4,8 @@
     (put-person! [storage person])
     
     (authentic? [storage agency account password])
-    ;; get-id-or-nil returns the account's id whether if the credentials are authentic, otherwise nil.
+    
     (get-id [storage agency account]))
-
 
 (def person-desc {:table-name "public.person"
                     :id "id"
@@ -39,16 +38,13 @@
                 (db/execute! (:spec storage) sql-query))))
 
 (defn create-person-table! [spec]
-  (db/execute! spec [ "CREATE TABLE IF NOT EXISTS public.person
-                            (
-                              id BIGSERIAL PRIMARY KEY,
-                              fullname text NOT NULL,
-                              cpf text NOT NULL,
-                              address text NOT NULL,
-                              date_of_birth text NOT NULL, 
-                              password text NOT NULL,
+  (db/execute! spec [(str "CREATE TABLE IF NOT EXISTS public.person ("
+                            (:id person-desc) " BIGSERIAL PRIMARY KEY, "
+                            (:fullname person-desc) " TEXT NOT NULL, "
+                            (:cpf person-desc) " TEXT NOT NULL, "
+                            (:address person-desc) " TEXT NOT NULL, "
+                            (:date_of_birth person-desc) " TEXT NOT NULL, "
+                            (:password person-desc) " TEXT NOT NULL, "
 
-                              agency integer NOT NULL,
-                              account integer NOT NULL
-                            )
-                            " ]))
+                            (:agency person-desc) " INTEGER NOT NULL, "
+                            (:account person-desc) " INTEGER NOT NULL)" )]))
