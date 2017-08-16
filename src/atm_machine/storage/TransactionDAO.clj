@@ -1,6 +1,7 @@
 (ns atm-machine.storage.transactionsdao
-  (:require [atm-machine.storage.persondao :as persondao]
-            [clojure.java.jdbc :as db]))
+  (:require [clojure.java.jdbc :as db]
+            [atm-machine.model.person :refer [person-desc]]
+            [atm-machine.model.transaction :refer [transaction-desc]]))
 
 (defprotocol TransactionDAOProtocol
     (transfer! [storage from to value])
@@ -11,13 +12,6 @@
 
     (perform-operation! [storage ag acc value description]))
 
-(def transaction-desc {:table-name "public.transaction"
-                    :id "id"
-                    :account "account"
-                    :balance "balance"
-                    :value "value"
-                    :description "description"
-                    :transaction-time "transaction_time"})
 
 (defn get-balance [spec ag acc]
   (let [person-id (persondao/get-id spec ag acc)]

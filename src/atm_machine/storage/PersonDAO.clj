@@ -1,5 +1,6 @@
 (ns atm-machine.storage.persondao
-    (:require [clojure.java.jdbc :as db]))
+    (:require [clojure.java.jdbc :as db]
+              [atm-machine.model.person :refer [person-desc]]))
 
 (defprotocol PersonDAOProtocol
     (put-person! [storage person])
@@ -7,16 +8,6 @@
     (authentic? [storage agency account password])
 
     (get-id [storage agency account]))
-
-(def person-desc {:table-name "public.person"
-                    :id "id"
-                    :fullname "fullname"
-                    :cpf "cpf"
-                    :address "address"
-                    :date-of-birth "date_of_birth"
-                    :password "password"
-                    :agency "agency"
-                    :account "account"})
 
 
 (defn put-person! [spec person]
