@@ -2,14 +2,6 @@
     (:require [clojure.java.jdbc :as db]
               [atm-machine.model.person :refer [person-desc]]))
 
-(defprotocol PersonDAOProtocol
-    (put-person! [storage person])
-
-    (authentic? [storage agency account password])
-
-    (get-id [storage agency account]))
-
-
 (defn put-person! [spec person]
   (let [sql-query (str "INSERT INTO " (:table-name person-desc) " ("
                        (:fullname person-desc) ", "
