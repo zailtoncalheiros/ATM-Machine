@@ -22,9 +22,20 @@
 (defn get-balance [spec ag acc]
   (let [person-id (persondao/get-id spec ag acc)]
   (let [rows (db/query spec [(str "SELECT * FROM " (:table-name transaction-desc) " WHERE "
-                      (:account transaction-desc) " = " person-id " ORDER BY "
-                      (:transaction-time transaction-desc) " DESC LIMIT 1")])]
+                                  (:account transaction-desc) " = " person-id " ORDER BY "
+                                  (:transaction-time transaction-desc) " DESC LIMIT 1")])]
     (if (empty? rows) nil ((:balance transaction-desc) (first rows))))))
+
+
+
+
+(defn get-statement [spec ag acc days]
+  (let [person-id (persondao/get-id spec ag acc)]
+  (let [rows (db/query spec [(str "SELECT * FROM " (:table-name transaction-desc) " WHERE "
+                                  (:account transaction-desc) " = " person-id " AND TO_CHAR (CURRENT_TIMESTAMP - interval '"
+                                  days " days', 'YYYYMMDD') <= " (:transaction-time transaction-desc))])]
+    rows
+    )))
 
 (defn perform-operation! [spec ag acc value description]
   (db/with-db-transaction [trans-conn spec]
