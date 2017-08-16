@@ -1,16 +1,8 @@
 (ns atm-machine.storage.transactionsdao
   (:require [clojure.java.jdbc :as db]
             [atm-machine.model.person :refer [person-desc]]
-            [atm-machine.model.transaction :refer [transaction-desc]]))
-
-(defprotocol TransactionDAOProtocol
-    (transfer! [storage from to value])
-
-    (get-balance [storage ag acc])
-
-    (get-statement [storage last-days])
-
-    (perform-operation! [storage ag acc value description]))
+            [atm-machine.model.transaction :refer [transaction-desc]]
+            [atm-machine.utils.statement-helper :as statement-helper]))
 
 
 (defn get-balance [spec ag acc]
@@ -21,15 +13,14 @@
     (if (empty? rows) nil ((:balance transaction-desc) (first rows))))))
 
 
-
-
 (defn get-statement [spec ag acc days]
   (let [person-id (persondao/get-id spec ag acc)]
   (let [rows (db/query spec [(str "SELECT * FROM " (:table-name transaction-desc) " WHERE "
                                   (:account transaction-desc) " = " person-id " AND TO_CHAR (CURRENT_TIMESTAMP - interval '"
                                   days " days', 'YYYYMMDD') <= " (:transaction-time transaction-desc))])]
-    rows
-    )))
+  (let [parsed-rows (statement-helper/convert-all-transactions rows)]
+    (statement-helper/build-statement-map parsed-rows)))))
+
 
 (defn perform-operation! [spec ag acc value description]
   (db/with-db-transaction [trans-conn spec]
