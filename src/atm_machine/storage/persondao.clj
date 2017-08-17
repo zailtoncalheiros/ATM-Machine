@@ -25,7 +25,7 @@
                        (:agency person-desc) " = " agency " AND "
                        (:account person-desc) " = " account)]
     (let [person-list (db/query spec [sql-query])]
-      (if (nil? person-list) false (= password ((:password person-desc) (first person-list)))))))
+      (if (nil? person-list) false (= password ((keyword (:password person-desc)) (first person-list)))))))
 
 
 (defn get-id [spec agency account]
@@ -33,7 +33,7 @@
                        (:agency person-desc) " = " agency " AND "
                        (:account person-desc) " = " account)]
     (let [person-list (db/query spec [sql-query])]
-      (if (nil? person-list) nil ((:id person-desc) (first person-list))))))
+      (if (nil? person-list) nil ((keyword (:id person-desc)) (first person-list))))))
 
 (defn create-person-table! [spec]
   (db/execute! spec [(str "CREATE TABLE IF NOT EXISTS public.person ("

@@ -2,7 +2,27 @@
   (:require [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
             [io.pedestal.http.body-params :as body-params]
-            [ring.util.response :as ring-resp]))
+            [ring.util.response :as ring-resp]
+            [atm-machine.storage.persondao :as persondao]
+            [atm-machine.storage.transactiondao :as transactiondao]
+            [atm-machine.storage.dbinit :as dbinit]))
+
+
+(def spec (dbinit/init-my-db!))
+
+(defn add-user [request]
+  (let [user (:json-params request)]
+    (persondao/put-person! spec user)
+    (ring-resp/created "OK")))
+
+(defn balance [request]
+  (let [agency (get-in request [:path-params :agency])
+        account (get-in request [:path-params :account])
+        password (get-in request [:path-params :password])]
+    (prn (transactiondao/get-balance spec agency account))
+    (if (persondao/authentic? spec agency account password)
+      (http/json-response (transactiondao/get-balance spec agency account))
+      (ring-resp/status "Not authorized" 401))))
 
 (defn about-page
   [request]
@@ -21,7 +41,9 @@
 
 ;; Tabular routes
 (def routes #{["/" :get (conj common-interceptors `home-page)]
-              ["/about" :get (conj common-interceptors `about-page)]})
+              ["/about" :get (conj common-interceptors `about-page)]
+              ["/balance/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `balance)]
+              ["/add-user" :post (conj common-interceptors `add-user)]})
 
 ;; Map-based routes
 ;(def routes `{"/" {:interceptors [(body-params/body-params) http/html-body]
@@ -59,7 +81,7 @@
               ;; Either :jetty, :immutant or :tomcat (see comments in project.clj)
               ::http/type :jetty
               ;;::http/host "localhost"
-              ::http/port (Integer. (or (System/getenv "PORT") 5000)
+              ::http/port (Integer. (or (System/getenv "PORT") 5000))
               ;; Options to pass to the container (Jetty)
               ::http/container-options {:h2c? true
                                         :h2? false

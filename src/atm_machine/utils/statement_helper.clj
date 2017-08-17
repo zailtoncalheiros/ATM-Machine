@@ -6,7 +6,7 @@
 (def custom-formatter (time-format/formatter "yyyy-MM-dd"))
 
 (defn convert-transaction [trans]
-  (update trans (:transaction-time transaction-desc) #(time-format/unparse custom-formatter (coerce/from-sql-time %))))
+  (update trans (keyword (:transaction-time transaction-desc)) #(time-format/unparse custom-formatter (coerce/from-sql-time %))))
 
 (defn convert-all-transactions [rows]
   (map convert-transaction rows))
@@ -16,7 +16,7 @@
   (cond
     (nil? f) nil
     (nil? s) (list (list f))
-    (= ((:transaction-time transaction-desc) f) ((:transaction-time transaction-desc) s))
+    (= ((keyword (:transaction-time transaction-desc)) f) ((keyword (:transaction-time transaction-desc)) s))
       (let [ans-list (separate-by-date (cons s l))]
       (let [head (first ans-list) tail (rest ans-list)]
         (cons (cons f head) tail)))
@@ -25,10 +25,10 @@
 
 ;; build-day-statement receives a list with all transactions for a given day and returns a map with statement descrption.
 (defn build-day-statement [[h & t]]
-  (letfn [(get-full-description [trans] (str ((:description transaction-desc) trans) " " ((:value transaction-desc) trans)))]
+  (letfn [(get-full-description [trans] (str ((keyword (:description transaction-desc)) trans) " " ((keyword (:value transaction-desc)) trans)))]
     (cond
       (nil? h) nil
-      (nil? t) {:balance ((:balance transaction-desc) h) :date ((:transaction-time transaction-desc) h) :descriptions (list (get-full-description h))}
+      (nil? t) {:balance ((keyword (:balance transaction-desc)) h) :date ((keyword (:transaction-time transaction-desc)) h) :descriptions (list (get-full-description h))}
       true (update (build-day-statement t) :descriptions #(cons (get-full-description h) %)))))
 
 

@@ -1,5 +1,6 @@
-(ns atm-machine.storage.transactionsdao
-  (:require [atm-machine.model.person :refer [person-desc]]
+(ns atm-machine.storage.limitdao
+  (:require [clojure.java.jdbc :as db]
+            [atm-machine.model.person :as persondao]
             [atm-machine.model.limit :refer [limit-desc]]))
 
 (defprotocol LimitDAO

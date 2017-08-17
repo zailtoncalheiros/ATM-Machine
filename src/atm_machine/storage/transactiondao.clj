@@ -1,7 +1,8 @@
-(ns atm-machine.storage.transactionsdao
+(ns atm-machine.storage.transactiondao
   (:require [clojure.java.jdbc :as db]
             [atm-machine.model.person :refer [person-desc]]
             [atm-machine.model.transaction :refer [transaction-desc]]
+            [atm-machine.storage.persondao :as persondao]
             [atm-machine.utils.statement-helper :as statement-helper]))
 
 
@@ -10,7 +11,7 @@
   (let [rows (db/query spec [(str "SELECT * FROM " (:table-name transaction-desc) " WHERE "
                                   (:account transaction-desc) " = " person-id " ORDER BY "
                                   (:transaction-time transaction-desc) " DESC LIMIT 1")])]
-    (if (empty? rows) nil ((:balance transaction-desc) (first rows))))))
+    (if (empty? rows) 0 ((keyword (:balance transaction-desc)) (first rows))))))
 
 
 (defn get-statement [spec ag acc days]
@@ -54,10 +55,10 @@
 
 
 (defn create-transaction-table! [spec]
-  (db/execute! spec [(str "CREATE TABLE IF NOT EXISTS " (:table-name transaction-desc) "( "
+  (db/execute! spec [(str "CREATE TABLE IF NOT EXISTS " (:table-name transaction-desc) " ("
                               (:id transaction-desc) " BIGSERIAL PRIMARY KEY, "
-                              (:account transaction-desc) " BIGINT NOT NULL REFERENCES " (:table-name persondao/person-desc) ", "
+                              (:account transaction-desc) " BIGINT NOT NULL REFERENCES " (:table-name person-desc) ", "
                               (:balance transaction-desc) " BIGINT NOT NULL, "
                               (:value transaction-desc) " BIGINT NOT NULL, "
-                              (:description transaction-desc) " TEXT NOT NULL ",
+                              (:description transaction-desc) " TEXT NOT NULL, ",
                               (:transaction-time transaction-desc) " TIMESTAMP NOT NULL)")]))

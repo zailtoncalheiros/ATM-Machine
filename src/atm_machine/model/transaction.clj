@@ -6,4 +6,4 @@
                     :balance "balance"
                     :value "value"
                     :description "description"
-                    :transaction-time "transaction_time"})
+                    :transaction-time "transactiontime"})

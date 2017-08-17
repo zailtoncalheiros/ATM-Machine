@@ -7,7 +7,7 @@
               "postgresql://zailton:teste123@localhost:5432/zailton"))
 
 (defn init-my-db! []
-    (persondao.create-person-table! spec)
-    (transactiondao.create-transaction-table! spec)
-    (persondao.create-limit-table! spec)
-    spec) 
+    (persondao/create-person-table! spec)
+    (transactiondao/create-transaction-table! spec)
+    (limitdao/create-limit-table! spec)
+    spec)
