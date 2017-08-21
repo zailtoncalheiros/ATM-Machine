@@ -44,6 +44,16 @@
         (ring-resp/created "OK"))
       (ring-resp/status "Not authorized" 401))))
 
+(defn perform-transfer [request]
+  (let [agency (get-in request [:path-params :agency])
+        account (get-in request [:path-params :account])
+        password (get-in request [:path-params :password])
+        operation (get-in request [:json-params])]
+    (if (persondao/authentic? spec agency account password)
+      (do
+        (transactiondao/transfer! spec agency account (:agency operation) (:account operation) (:value operation))
+        (ring-resp/created "OK"))
+      (ring-resp/status "Not authorized" 401))))
 
 (defn about-page
   [request]
@@ -65,6 +75,7 @@
               ["/about" :get (conj common-interceptors `about-page)]
               ["/balance/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `balance)]
               ["/statement/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `statement)]
+              ["/transfer/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `perform-transfer)]
               ["/transaction/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `add-transaction)]
               ["/add-user" :post (conj common-interceptors `add-user)]})
 
