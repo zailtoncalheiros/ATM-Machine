@@ -18,7 +18,8 @@
   (let [person-id (persondao/get-id spec ag acc)]
   (let [rows (db/query spec [(str "SELECT * FROM " (:table-name transaction-desc) " WHERE "
                                   (:account transaction-desc) " = " person-id " AND TO_CHAR (CURRENT_TIMESTAMP - interval '"
-                                  days " days', 'YYYYMMDD') <= " (:transaction-time transaction-desc))])]
+                                  days " days', 'YYYYMMDD') <= TO_CHAR ("
+                                  (:transaction-time transaction-desc) ", 'YYYYMMDD')")])]
   (let [parsed-rows (statement-helper/convert-all-transactions rows)]
     (statement-helper/build-statement-map parsed-rows)))))
 
