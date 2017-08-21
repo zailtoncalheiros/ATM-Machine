@@ -23,6 +23,16 @@
       (http/json-response (transactiondao/get-balance spec agency account))
       (ring-resp/status "Not authorized" 401))))
 
+(defn statement [request]
+  (let [agency (get-in request [:path-params :agency])
+        account (get-in request [:path-params :account])
+        password (get-in request [:path-params :password])
+        days (get-in request [:query-params :days] 7)]
+    (if (persondao/authentic? spec agency account password)
+      (http/json-response (transactiondao/get-statement spec agency account days))
+      (ring-resp/status "Not authorized" 401))))
+
+
 (defn add-transaction [request]
   (let [agency (get-in request [:path-params :agency])
         account (get-in request [:path-params :account])
@@ -54,6 +64,7 @@
 (def routes #{["/" :get (conj common-interceptors `home-page)]
               ["/about" :get (conj common-interceptors `about-page)]
               ["/balance/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `balance)]
+              ["/statement/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `statement)]
               ["/transaction/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `add-transaction)]
               ["/add-user" :post (conj common-interceptors `add-user)]})
 
