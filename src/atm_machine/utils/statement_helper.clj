@@ -31,9 +31,11 @@
       (nil? t) {:balance ((keyword (:balance transaction-desc)) h) :date ((keyword (:transaction-time transaction-desc)) h) :descriptions (list (get-full-description h))}
       true (update (build-day-statement t) :descriptions #(cons (get-full-description h) %)))))
 
-
-;; build-statement-map receives a list with transaction lists separated by day and returns a list with the statement descriptions.
-(defn build-statement-map [[h & t]]
+(defn build-statement-map-aux [[h & t]]
   (cond
     (nil? h) nil
-    true (cons (build-day-statement h) (build-statement-map t))))
+    true (cons (build-day-statement h) (build-statement-map-aux t))))
+
+;; build-statement-map receives a list with transaction lists separated by day and returns a list with the statement descriptions.
+(defn build-statement-map [param]
+  (build-statement-map-aux (separate-by-date param)))
