@@ -19,10 +19,21 @@
   (let [agency (get-in request [:path-params :agency])
         account (get-in request [:path-params :account])
         password (get-in request [:path-params :password])]
-    (prn (transactiondao/get-balance spec agency account))
     (if (persondao/authentic? spec agency account password)
       (http/json-response (transactiondao/get-balance spec agency account))
       (ring-resp/status "Not authorized" 401))))
+
+(defn add-transaction [request]
+  (let [agency (get-in request [:path-params :agency])
+        account (get-in request [:path-params :account])
+        password (get-in request [:path-params :password])
+        operation (get-in request [:json-params])]
+    (if (persondao/authentic? spec agency account password)
+      (do
+        (transactiondao/perform-operation! spec agency account (:value operation) (:description operation))
+        (ring-resp/created "OK"))
+      (ring-resp/status "Not authorized" 401))))
+
 
 (defn about-page
   [request]
@@ -43,6 +54,7 @@
 (def routes #{["/" :get (conj common-interceptors `home-page)]
               ["/about" :get (conj common-interceptors `about-page)]
               ["/balance/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `balance)]
+              ["/transaction/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `add-transaction)]
               ["/add-user" :post (conj common-interceptors `add-user)]})
 
 ;; Map-based routes
