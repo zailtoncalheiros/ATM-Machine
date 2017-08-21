@@ -36,8 +36,8 @@
                             (:transaction-time transaction-desc) ") VALUES ("
                             person-id ", "
                             new-balance ", "
-                            value ", "
-                            description ", "
+                            value ", '"
+                            description "', "
                             "CURRENT_TIMESTAMP)")]
       (db/execute! trans-conn [insert-query])))))))
 
