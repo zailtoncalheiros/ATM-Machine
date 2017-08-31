@@ -5,55 +5,119 @@
             [ring.util.response :as ring-resp]
             [atm-machine.storage.persondao :as persondao]
             [atm-machine.storage.transactiondao :as transactiondao]
-            [atm-machine.storage.dbinit :as dbinit]))
+            [atm-machine.storage.dbinit :as dbinit]
+
+            [io.pedestal.interceptor.helpers :refer (defmiddleware)]
+
+            [clj-time.core :as time]
+            [buddy.sign.jwt :as jwt]
+            [buddy.auth :refer [authenticated? throw-unauthorized]]
+            [buddy.auth.backends.token :refer [jws-backend]]
+            [buddy.auth.middleware :refer [authentication-request]]))
 
 
 (def spec (dbinit/init-my-db!))
 
+
+(def client "client")
+(def admin-password "secret123")
+
+(defn client? [user]
+  (= user "client"))
+(defn admin? [user]
+  (= user "admin"))
+(defn valid-admin? [user password]
+  (and (admin? user) (= password admin-password)))
+
+
+(def secret "mysupersecret")
+
+(def auth-backend (jws-backend {:secret secret :options {:alg :hs512}}))
+
+(defmiddleware middleware-interceptor
+  ([request] (authentication-request request auth-backend))
+  ([response] response))
+
+(defn generateToken [claims]
+  (jwt/sign claims secret {:alg :hs512}))
+
+(defn login [request]
+  (let [user (get-in request [:json-params :user] client)
+        agency (get-in request [:json-params :agency] 0)
+        account (get-in request [:json-params :account] 0)
+        password (get-in request [:json-params :password])
+        claims {:user user
+                :agency agency
+                :account account
+                :exp (time/plus (time/now) (time/seconds 360000))}]
+    (if (client? user)
+      (if (persondao/authentic? spec agency account password)
+        (http/json-response {:token (generateToken claims)})
+        (throw-unauthorized))
+      (if (valid-admin? user password)
+        (http/json-response {:token (generateToken claims)})
+        (throw-unauthorized)))))
+
+
 (defn add-user [request]
-  (let [user (:json-params request)]
-    (persondao/put-person! spec user)
-    (ring-resp/created "OK")))
+  (prn request)
+  (if-not (authenticated? request)
+    (throw-unauthorized)
+    (let [user (:json-params request)
+          logged-user (get-in request [:identity :user])]
+      (if-not (admin? logged-user)
+        (throw-unauthorized)
+        (do (persondao/put-person! spec user)
+          (ring-resp/created "OK"))))))
 
 (defn balance [request]
-  (let [agency (get-in request [:path-params :agency])
-        account (get-in request [:path-params :account])
-        password (get-in request [:path-params :password])]
-    (if (persondao/authentic? spec agency account password)
-      (http/json-response (transactiondao/get-balance spec agency account))
-      (ring-resp/status "Not authorized" 401))))
+  (if-not (authenticated? request)
+    (throw-unauthorized)
+    (let [logged-user (get-in request [:identity :user])]
+      (if-not (client? logged-user)
+        (throw-unauthorized)
+        (let [agency (get-in request [:identity :agency])
+              account (get-in request [:identity :account])]
+          (http/json-response (transactiondao/get-balance spec agency account)))))))
+
 
 (defn statement [request]
-  (let [agency (get-in request [:path-params :agency])
-        account (get-in request [:path-params :account])
-        password (get-in request [:path-params :password])
-        days (get-in request [:query-params :days] 7)]
-    (if (persondao/authentic? spec agency account password)
-      (http/json-response (transactiondao/get-statement spec agency account days))
-      (ring-resp/status "Not authorized" 401))))
+  (if-not (authenticated? request)
+    (throw-unauthorized)
+    (let [logged-user (get-in request [:identity :user])]
+      (if-not (client? logged-user)
+        (throw-unauthorized)
+        (let [agency (get-in request [:identity :agency])
+              account (get-in request [:identity :account])
+              days (get-in request [:query-params :days] 7)]
+            (http/json-response (transactiondao/get-statement spec agency account days)))))))
 
 
 (defn add-transaction [request]
-  (let [agency (get-in request [:path-params :agency])
-        account (get-in request [:path-params :account])
-        password (get-in request [:path-params :password])
-        operation (get-in request [:json-params])]
-    (if (persondao/authentic? spec agency account password)
-      (do
-        (transactiondao/perform-operation! spec agency account (:value operation) (:description operation))
-        (ring-resp/created "OK"))
-      (ring-resp/status "Not authorized" 401))))
+  (if-not (authenticated? request)
+    (throw-unauthorized)
+    (let [logged-user (get-in request [:identity :user])]
+      (if-not (client? logged-user)
+        (throw-unauthorized)
+        (let [agency (get-in request [:identity :agency])
+              account (get-in request [:identity :account])
+              operation (get-in request [:json-params])]
+            (do
+              (transactiondao/perform-operation! spec agency account (:value operation) (:description operation))
+              (ring-resp/created "OK")))))))
 
 (defn perform-transfer [request]
-  (let [agency (get-in request [:path-params :agency])
-        account (get-in request [:path-params :account])
-        password (get-in request [:path-params :password])
-        operation (get-in request [:json-params])]
-    (if (persondao/authentic? spec agency account password)
-      (do
-        (transactiondao/transfer! spec agency account (:agency operation) (:account operation) (:value operation))
-        (ring-resp/created "OK"))
-      (ring-resp/status "Not authorized" 401))))
+  (if-not (authenticated? request)
+    (throw-unauthorized)
+    (let [logged-user (get-in request [:identity :user])]
+      (if-not (client? logged-user)
+        (throw-unauthorized)
+        (let [agency (get-in request [:identity :agency])
+              account (get-in request [:identity :account])
+              operation (get-in request [:json-params])]
+            (do
+              (transactiondao/transfer! spec agency account (:agency operation) (:account operation) (:value operation))
+              (ring-resp/created "OK")))))))
 
 (defn about-page
   [request]
@@ -68,15 +132,16 @@
 ;; Defines "/" and "/about" routes with their associated :get handlers.
 ;; The interceptors defined after the verb map (e.g., {:get home-page}
 ;; apply to / and its children (/about).
-(def common-interceptors [(body-params/body-params) http/html-body])
+(def common-interceptors [middleware-interceptor (body-params/body-params) http/html-body])
 
 ;; Tabular routes
 (def routes #{["/" :get (conj common-interceptors `home-page)]
+              ["/login" :post (conj common-interceptors `login)]
               ["/about" :get (conj common-interceptors `about-page)]
-              ["/balance/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `balance)]
-              ["/statement/agency/:agency/account/:account/password/:password" :get (conj common-interceptors `statement)]
-              ["/transfer/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `perform-transfer)]
-              ["/transaction/agency/:agency/account/:account/password/:password" :post (conj common-interceptors `add-transaction)]
+              ["/balance" :get (conj common-interceptors `balance)]
+              ["/statement" :get (conj common-interceptors `statement)]
+              ["/transaction" :post (conj common-interceptors `add-transaction)]
+              ["/transfer" :post (conj common-interceptors `perform-transfer)]
               ["/add-user" :post (conj common-interceptors `add-user)]})
 
 ;; Map-based routes

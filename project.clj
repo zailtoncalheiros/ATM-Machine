@@ -15,6 +15,10 @@
                  [postgresql/postgresql "8.4-702.jdbc4"]
                  [org.clojure/java.jdbc "0.7.0"]
 
+                 [buddy/buddy-auth "2.0.0"]
+                 [buddy/buddy-sign "2.0.0"]
+
+
                  [ch.qos.logback/logback-classic "1.1.8" :exclusions [org.slf4j/slf4j-api]]
                  [org.slf4j/jul-to-slf4j "1.7.22"]
                  [org.slf4j/jcl-over-slf4j "1.7.22"]
