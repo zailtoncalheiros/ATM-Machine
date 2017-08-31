@@ -25,7 +25,7 @@
                        (:agency person-desc) " = " agency " AND "
                        (:account person-desc) " = " account)]
     (let [person-list (db/query spec [sql-query])]
-      (if (nil? person-list) false (= password ((keyword (:password person-desc)) (first person-list)))))))
+      (if (empty? person-list) false (= password ((keyword (:password person-desc)) (first person-list)))))))
 
 
 (defn get-id [spec agency account]
